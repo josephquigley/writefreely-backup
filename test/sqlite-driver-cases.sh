@@ -46,4 +46,10 @@ assert_eq "$(sqlite3 "$DB_FILENAME" 'SELECT title FROM posts')" "hello" "restore
 assert_eq "$([[ -e "$work/restored.db-journal" ]] && echo present || echo gone)" "gone" \
     "restore removes the stale journal"
 
+# The wrong image variant has to be an obvious error, not a confusing one.
+DB_FILENAME="$work/writefreely.db"
+missing="$(SQLITE_BIN=definitely-not-installed db_check 2>&1)"
+assert_contains "$missing" "writefreely-backup-sqlite" "a missing client names the right image"
+assert_contains "$missing" "definitely-not-installed" "a missing client names the binary"
+
 finish

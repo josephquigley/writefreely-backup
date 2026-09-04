@@ -57,4 +57,13 @@ RECORD="$work/restore-args"; export RECORD
 db_restore "$work/out.sql"
 assert_contains "$(cat "$RECORD")" "writefreely" "restore names the database"
 
+# Both images ship both drivers and differ only in which client binary is
+# installed, so running the wrong variant fails at runtime. It has to say so
+# plainly, and name the image that would work, rather than reporting a
+# connection failure that sends you looking at the database.
+missing="$(MARIADB_BIN=definitely-not-installed db_check 2>&1)"
+assert_contains "$missing" "writefreely-backup-mysql" "a missing client names the right image"
+assert_contains "$missing" "definitely-not-installed" "a missing client names the binary"
+assert_not_contains "$missing" "cannot connect" "a missing client is not reported as a connection failure"
+
 finish

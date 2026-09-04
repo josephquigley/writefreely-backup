@@ -2,11 +2,27 @@
 # SQLite driver. Sourced by backup.sh and restore.sh when config.ini says
 # `type = sqlite3`. Provides db_check, db_dump, db_restore, db_staged_name.
 
+# The client program, overridable so the missing-client path is testable.
+SQLITE_BIN="${SQLITE_BIN:-sqlite3}"
+
 db_staged_name() {
     printf 'writefreely.db'
 }
 
+# Both image variants ship both drivers and differ only in which client is
+# installed, so running the wrong one fails here. Say which image would work
+# rather than reporting it as a problem with the database.
+db_client_check() {
+    if ! command -v "$SQLITE_BIN" >/dev/null 2>&1; then
+        log_error "no $SQLITE_BIN in this image, but config.ini says type = sqlite3"
+        log_error "use the writefreely-backup-sqlite image"
+        return 1
+    fi
+    return 0
+}
+
 db_check() {
+    db_client_check || return 1
     if [[ -z "$DB_FILENAME" ]]; then
         log_error "config.ini has no [database] filename"
         return 1
@@ -15,7 +31,7 @@ db_check() {
         log_error "database file not found: $DB_FILENAME"
         return 1
     fi
-    if ! sqlite3 "$DB_FILENAME" 'SELECT 1' >/dev/null 2>&1; then
+    if ! "$SQLITE_BIN" "$DB_FILENAME" 'SELECT 1' >/dev/null 2>&1; then
         log_error "cannot read $DB_FILENAME"
         return 1
     fi
@@ -30,7 +46,7 @@ db_check() {
 # not equivalent: it can capture a torn page mid-transaction.
 db_dump() {
     local out="$1"
-    if ! sqlite3 "$DB_FILENAME" ".backup '$out'"; then
+    if ! "$SQLITE_BIN" "$DB_FILENAME" ".backup '$out'"; then
         log_error "sqlite3 .backup failed"
         return 1
     fi
