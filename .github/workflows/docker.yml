@@ -1,16 +1,21 @@
 name: Test and publish
 
-# Tags are branch and short sha only. There is no semver for this image:
-# deployments pin by digest, which makes an upgrade a deliberate edit rather
-# than a tag moving underneath a running container.
+# One package per database variant, rather than one package with the variant
+# in the tag. The two are peers with no defensible default, so a single
+# package would have no meaningful `latest`, and every version pin would be a
+# compound like 1.4-sqlite that reads as "version 1.4 of sqlite" rather than
+# of this tool. Separate names give each variant a clean tag namespace:
+# latest, main, sha-xxxxxxx, and semver once there is a release to cut.
+#
+# Pushing a v* tag publishes the matching semver tags. Until then there are
+# no version tags at all, which is deliberate: nothing external depends on
+# this yet, and an unused version scheme is just something to maintain.
 on:
   push:
     branches: [main, develop]
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
-
-env:
-  IMAGE: ghcr.io/${{ github.repository }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -93,11 +98,21 @@ jobs:
         id: meta
         uses: docker/metadata-action@v6.2.0
         with:
-          images: ${{ env.IMAGE }}
+          images: ghcr.io/${{ github.repository }}-${{ matrix.variant }}
+          # semver entries fire only on a v* tag push, so they produce
+          # nothing until there is a release. An operator can then pin as
+          # loosely or as tightly as they like: :1, :1.4, or :1.4.2.
           tags: |
-            type=ref,event=branch,suffix=-${{ matrix.variant }}
-            type=sha,format=short,suffix=-${{ matrix.variant }}
-          # There is no release tag for this image, so there is no latest.
+            type=ref,event=branch
+            type=sha,format=short
+            type=semver,pattern={{major}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{version}}
+            type=raw,value=latest,enable={{is_default_branch}}
+          # latest is handled by the raw entry above rather than by the
+          # flavor, because `latest=auto` only fires on a semver tag match
+          # and there are no releases yet, which would leave each package
+          # with no latest at all.
           flavor: latest=false
 
       - name: Build and push

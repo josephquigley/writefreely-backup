@@ -10,13 +10,19 @@ Two variants, matching the two databases WriteFreely supports. Pick the one your
 
 | `[database] type` | Image |
 |---|---|
-| `sqlite3` | `ghcr.io/josephquigley/writefreely-backup:main-sqlite` |
-| `mysql` | `ghcr.io/josephquigley/writefreely-backup:main-mysql` |
+| `sqlite3` | `ghcr.io/josephquigley/writefreely-backup-sqlite` |
+| `mysql` | `ghcr.io/josephquigley/writefreely-backup-mysql` |
 
-Tags are branch names and short commit shas. There is no semver, on purpose: pin by digest, so an upgrade is a deliberate edit rather than a tag moving underneath a running container.
+Each variant is its own package rather than a tag suffix on a shared one, because the two are peers with no default: a single package would have no meaningful `latest`, and a version pin would read as `1.4-sqlite`, which looks like version 1.4 of SQLite rather than of this tool.
+
+Both images ship both drivers and differ only in which database client is installed, so the wrong one fails at runtime. It says so plainly and names the image you want, but it is still a 3am surprise: match the image to your `[database] type`.
+
+Available tags per package: `latest` and `main` follow the default branch, `sha-xxxxxxx` names an exact commit, and once a release is cut, `1`, `1.4` and `1.4.2` let you pin as loosely or as tightly as you like.
+
+To pin by digest, so an upgrade is a deliberate edit rather than a tag moving underneath a running container:
 
 ```sh
-docker inspect -f '{{index .RepoDigests 0}}' ghcr.io/josephquigley/writefreely-backup:main-sqlite
+docker inspect -f '{{index .RepoDigests 0}}' ghcr.io/josephquigley/writefreely-backup-sqlite:latest
 ```
 
 ## Adding it to your stack
@@ -25,7 +31,7 @@ Drop this into your compose file. Nothing runs until you ask for the profile.
 
 ```yaml
   backup:
-    image: ghcr.io/josephquigley/writefreely-backup:main-sqlite
+    image: ghcr.io/josephquigley/writefreely-backup-sqlite:latest
     restart: unless-stopped
     # Match the user your WriteFreely container runs as, so a restore writes
     # files it can read.
@@ -64,7 +70,7 @@ volumes:
   backup_cache:
 ```
 
-On a MySQL/MariaDB stack, use the `-mysql` image and add `depends_on: db: condition: service_healthy`.
+On a MySQL/MariaDB stack, use the `writefreely-backup-mysql` image and add `depends_on: db: condition: service_healthy`.
 
 Then:
 
