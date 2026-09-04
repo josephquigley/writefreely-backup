@@ -1,6 +1,6 @@
 FROM mariadb:11.4
 
-LABEL org.opencontainers.image.source="https://github.com/josephquigley/writefreely-wisp"
+LABEL org.opencontainers.image.source="https://github.com/josephquigley/writefreely-backup"
 LABEL org.opencontainers.image.description="Restic backup sidecar for WriteFreely (MySQL/MariaDB)"
 LABEL org.opencontainers.image.licenses="AGPL-3.0"
 
