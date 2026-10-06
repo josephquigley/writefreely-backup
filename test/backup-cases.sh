@@ -70,4 +70,21 @@ assert_fails "an unreadable database fails the run" run_backup
 assert_eq "$(cut -d' ' -f1 < "$work/health")" "fail" "a failed run records fail"
 mv "$work/hidden.db" "$work/data/writefreely.db"
 
+# Without BACKUP_HOST every run must land in the same retention group, named
+# for the site, whatever the container happens to be called this time.
+run_backup_default_host() {
+    DATA_DIR="$work/data" \
+    STAGING_DIR="$work/staging" \
+    LOCK_FILE="$work/lock" \
+    HEALTH_FILE="$work/health" \
+    ALIVE_FILE="$work/alive" \
+    BACKUP_SITE="testsite" \
+    BACKUP_KEEP_DAILY=1 BACKUP_KEEP_WEEKLY=0 BACKUP_KEEP_MONTHLY=0 BACKUP_KEEP_YEARLY=0 \
+    bash ../scripts/backup.sh
+}
+run_backup_default_host >/dev/null 2>&1
+run_backup_default_host >/dev/null 2>&1
+assert_eq "$(restic snapshots --json | grep -o '"hostname":"[^"]*"' | grep -c '"hostname":"testsite"')" "1" \
+    "the default host is the site name, and retention prunes across runs"
+
 finish
