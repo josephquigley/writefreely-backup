@@ -87,4 +87,24 @@ run_backup_default_host >/dev/null 2>&1
 assert_eq "$(restic snapshots --json | grep -o '"hostname":"[^"]*"' | grep -c '"hostname":"testsite"')" "1" \
     "the default host is the site name, and retention prunes across runs"
 
+# A recreated container has no beacon. Seeding it from the repository must
+# date it at the newest snapshot for this site and host, and never overwrite a
+# beacon that exists.
+# shellcheck source=../scripts/common.sh
+source ../scripts/common.sh
+# shellcheck source=../scripts/health.sh
+source ../scripts/health.sh
+newest="$(restic snapshots --json --host testsite --tag testsite | grep -o '"time":"[^"]*"' | cut -d'"' -f4 | tail -1)"
+newest_epoch="$(date -d "$newest" +%s)"
+rm -f "$work/health"
+HEALTH_FILE="$work/health" BACKUP_SITE="testsite" seed_health_from_repository >/dev/null 2>&1
+assert_eq "$(cat "$work/health" 2>/dev/null)" "ok $newest_epoch" "a missing beacon is seeded from the newest snapshot"
+assert_eq "$(stat -c %Y "$work/health" 2>/dev/null)" "$newest_epoch" "the seeded beacon is dated at that snapshot"
+echo "fail 1" > "$work/health"
+HEALTH_FILE="$work/health" BACKUP_SITE="testsite" seed_health_from_repository >/dev/null 2>&1
+assert_eq "$(cat "$work/health")" "fail 1" "an existing beacon is never overwritten"
+rm -f "$work/health"
+HEALTH_FILE="$work/health" BACKUP_SITE="no-such-site" seed_health_from_repository >/dev/null 2>&1
+assert_eq "$([[ -e "$work/health" ]] && echo present || echo absent)" "absent" "no snapshot for this site means no beacon"
+
 finish
