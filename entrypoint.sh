@@ -84,6 +84,8 @@ run_scheduler() {
         done
     fi
 
+    seed_health_from_repository
+
     local last_run="" stamp
     while true; do
         touch_alive

@@ -39,3 +39,25 @@ ping_healthcheck() {
     fi
     return 0
 }
+
+# seed_health_from_repository
+# The beacon lives in /tmp, so a recreated container starts with none and
+# reads unhealthy until its first scheduled run, which for a daily schedule
+# can be most of a day of false alarm. A snapshot in the repository is proof
+# that a backup completed, so when there is no beacon, write one dated at the
+# newest snapshot for this deployment. Best-effort: no repository, no
+# snapshot, or an unparseable time all leave things as they were.
+seed_health_from_repository() {
+    [[ -e "$HEALTH_FILE" ]] && return 0
+    resolve_identity
+    local json newest=0 t epoch
+    json="$(restic snapshots --json --host "$HOST_TAG" --tag "$SITE" 2>/dev/null)" || return 0
+    while read -r t; do
+        epoch="$(date -d "$t" +%s 2>/dev/null)" || continue
+        (( epoch > newest )) && newest="$epoch"
+    done < <(grep -o '"time":"[^"]*"' <<< "$json" | cut -d'"' -f4)
+    (( newest > 0 )) || return 0
+    echo "ok $newest" > "$HEALTH_FILE" 2>/dev/null || return 0
+    touch -d "@$newest" "$HEALTH_FILE" 2>/dev/null || true
+    log "no local health record; seeded it from the newest snapshot, taken $(date -d "@$newest" '+%Y-%m-%d %H:%M:%S')"
+}

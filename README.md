@@ -153,7 +153,7 @@ Set `BACKUP_HEALTHCHECK_URL` to be told from outside. It is pinged after a succe
 | `BACKUP_KEEP_YEARLY` | `2` | retention |
 | `BACKUP_HEALTHCHECK_URL` | unset | pinged on success, `/fail` on failure. A ping the monitor does not accept (a paused monitor answers 410) is logged with its status, never with the URL, and never fails the backup |
 | `BACKUP_ALIVE_MAX_AGE` | `2` | minutes without a scheduler heartbeat before unhealthy |
-| `BACKUP_HEALTH_MAX_AGE` | `11520` | minutes since the last successful run before unhealthy |
+| `BACKUP_HEALTH_MAX_AGE` | `11520` | minutes since the last successful run before unhealthy. A new or recreated container has no record of past runs, so at startup it takes the time of the newest snapshot for this site and host as the last success, rather than reading unhealthy until its first scheduled run |
 | `BACKUP_SITE` | `writefreely` | a restic tag, so one repository can hold several sites |
 | `BACKUP_HOST` | the value of `BACKUP_SITE` | the restic host. Retention only considers snapshots with this host, so it must stay the same across runs and container recreates. Earlier releases defaulted to the container hostname, which Docker changes on every recreate: snapshots taken that way sit in groups of their own and are never pruned, so `forget` them by id once after upgrading |
 | `RESTIC_CACHE_DIR` | restic's default | point at a volume, or every prune re-downloads the index |

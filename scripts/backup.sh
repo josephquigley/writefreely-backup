@@ -22,13 +22,9 @@ KEEP_DAILY="${BACKUP_KEEP_DAILY:-7}"
 KEEP_WEEKLY="${BACKUP_KEEP_WEEKLY:-4}"
 KEEP_MONTHLY="${BACKUP_KEEP_MONTHLY:-6}"
 KEEP_YEARLY="${BACKUP_KEEP_YEARLY:-2}"
-SITE="${BACKUP_SITE:-writefreely}"
-# The restic host groups snapshots for retention, and forget only ever sees
-# this host's snapshots. A container's hostname is its id, which changes on
-# every recreate and on every `compose run`, so defaulting to it left each run
-# in a group of one that retention could never thin out. The site name is
-# stable for the life of the deployment.
-HOST_TAG="${BACKUP_HOST:-$SITE}"
+# Retention is filtered to HOST_TAG, so see resolve_identity for why it must
+# stay stable across runs and recreates.
+resolve_identity
 
 STARTED=0
 SUCCEEDED=0
