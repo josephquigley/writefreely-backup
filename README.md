@@ -151,7 +151,7 @@ Set `BACKUP_HEALTHCHECK_URL` to be told from outside. It is pinged after a succe
 | `BACKUP_KEEP_WEEKLY` | `4` | retention |
 | `BACKUP_KEEP_MONTHLY` | `6` | retention |
 | `BACKUP_KEEP_YEARLY` | `2` | retention |
-| `BACKUP_HEALTHCHECK_URL` | unset | pinged on success, `/fail` on failure |
+| `BACKUP_HEALTHCHECK_URL` | unset | pinged on success, `/fail` on failure. A ping the monitor does not accept (a paused monitor answers 410) is logged with its status, never with the URL, and never fails the backup |
 | `BACKUP_ALIVE_MAX_AGE` | `2` | minutes without a scheduler heartbeat before unhealthy |
 | `BACKUP_HEALTH_MAX_AGE` | `11520` | minutes since the last successful run before unhealthy |
 | `BACKUP_SITE` | `writefreely` | a restic tag, so one repository can hold several sites |
